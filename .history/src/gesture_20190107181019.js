@@ -3,41 +3,28 @@ var _getEmptyPoint = function() {
 };
 
 var _that ,
-
-    _gestureStartTime,
-	_gestureCheckSpeedTime,
-    _direction ,
+    _direction = 'h',
     _module = [],
     _tempPointsArr = [],
     _currPointers = [],
-    _posPoints = [],
     _pointerEventEnabled,
     numPoints,
-    delta = {},
     _ePoint1 = {},
     _ePoint2 = {},
     _features = {},
     _startPoint = {},
     _currPoint = {},
-    _startMainScrollPos = {},
     _dragAnimFrame,
     _isZooming = false,
-     p = _getEmptyPoint(),
     _currPanDist = _getEmptyPoint(),
     _mainScrollPos = _getEmptyPoint(),
     _slideSize = _getEmptyPoint(),
     _startPanOffset = _getEmptyPoint(),
-    _panOffset = _getEmptyPoint(),
-    _currZoomElementStyle,
-    _currZoomLevel,
+	_panOffset = _getEmptyPoint(),
     _isDragging,
-    _isFirstMove,
     _requestAF,
     _cancelAF,
     _currentPoints,
-    _transformKey,
-    _translatePrefix,
-    _translateSufix,
     _currPositionIndex = 0,
     DIRECTION_CHECK_OFFSET = 10;
 
@@ -60,10 +47,7 @@ var _that ,
             if(p2.id) {
                 p1.id = p2.id;
             }
-        },
-        _getCurrentTime : function() {
-            return new Date().getTime();
-        },
+        }
     }
 class gesture  {
     constructor(params){
@@ -73,21 +57,11 @@ class gesture  {
         _that = this
     }
     init(){
-        _transformKey = 'transform';
-        if(_transformKey) {
-			// setup 3d transforms
-			var allow3dTransform = true;//_features.perspective && !_likelyTouchDevice;
-			_translatePrefix = 'translate' + (allow3dTransform ? '3d(' : '(');
-			_translateSufix = true ? ', 0px)' : ')';	
-        }
-        
         this.initFeatures()
         this.bindEvent()
 
         _requestAF = _features.raf
         _cancelAF = _features.caf
-
-       
     }
     bindEvent(){
         this.container.addEventListener('touchstart',this._onDragStart, false)
@@ -111,39 +85,19 @@ class gesture  {
             numPoints = startPointsList.length;
             
             if(!_isDragging){
-                _isDragging = _isFirstMove = true
+                _isDragging = true
                 util._equalizePoints(_startPanOffset, _panOffset);
 
 			    _currPanDist.x = _currPanDist.y = 0;
 			    util._equalizePoints(_currPoint, startPointsList[0]);
                 util._equalizePoints(_startPoint, _currPoint);
-            
-                //_equalizePoints(_startMainScrollPos, _mainScrollPos);
-                _startMainScrollPos.x = _slideSize.x * _currPositionIndex;
-
-                _posPoints = [{
-                    x: _currPoint.x,
-                    y: _currPoint.y
-                }];
-
-                _gestureCheckSpeedTime = _gestureStartTime = util._getCurrentTime();
-
+            console.log(_currPoint)
                 _that._stopDragUpdateLoop();
                 _that._dragUpdateLoop();
             }
     }
     
     _onDragMove(e){
-console.log('_onDragMove')
-		if(_pointerEventEnabled) {
-			var pointerIndex = framework.arraySearch(_currPointers, e.pointerId, 'id');
-			if(pointerIndex > -1) {
-				var p = _currPointers[pointerIndex];
-				p.x = e.pageX;
-				p.y = e.pageY; 
-			}
-        }
-        
         if(_isDragging) {
             var touchesList = _that._getTouchPoints(e);
 			if(!_direction &&  !_isZooming) {
@@ -152,8 +106,7 @@ console.log('_onDragMove')
 					// if main scroll position is shifted – direction is always horizontal
 					_direction = 'h';
 				} else {
-                    var diff = Math.abs(touchesList[0].x - _currPoint.x) - Math.abs(touchesList[0].y - _currPoint.y);
-                    console.log(Math.abs(diff))
+					var diff = Math.abs(touchesList[0].x - _currPoint.x) - Math.abs(touchesList[0].y - _currPoint.y);
 					// check the direction of movement
 					if(Math.abs(diff) >= DIRECTION_CHECK_OFFSET) {
 						_direction = diff > 0 ? 'h' : 'v';
@@ -164,13 +117,10 @@ console.log('_onDragMove')
 			} else {
 				_currentPoints = touchesList;
             }
-        }	
-        if(_direction === 'v' && _currentPoints.length == 1){
-            e.preventDefault();
-        }
-        console.log(_direction)
+		}	
     }
     _renderMovement(){
+        console.log(_direction)
         if(!_currentPoints) {
 			return;
 		}
@@ -179,95 +129,24 @@ console.log('_onDragMove')
 
 		if(numPoints === 0) {
 			return;
-		}
-        console.log(numPoints)
-		util._equalizePoints(p, _currentPoints[0]);
-		delta.x = p.x - _currPoint.x;
-		delta.y = p.y - _currPoint.y;
+        }
+        
+        if(_direction === 'v' && _options.closeOnVerticalDrag) {
+            if(!_canPan()) {
+                _currPanDist.y += delta.y;
+                _panOffset.y += delta.y;
 
-        if(numPoints < 2){
-            if(!_direction) {
-                return;
-            }
-    
-            if(_isFirstMove) {
-                _isFirstMove = false;
-    
-                // subtract drag distance that was used during the detection direction  
-    
-                if( Math.abs(delta.x) >= DIRECTION_CHECK_OFFSET) {
-                    delta.x -= _currentPoints[0].x - _startPoint.x;
-                }
-                
-                if( Math.abs(delta.y) >= DIRECTION_CHECK_OFFSET) {
-                    delta.y -= _currentPoints[0].y - _startPoint.y;
-                }
-            }
-    
-            _currPoint.x = p.x;
-            _currPoint.y = p.y;
-    
-            // do nothing if pointers position hasn't changed
-            if(delta.x === 0 && delta.y === 0) {
-                return;
-            }
-            if(_direction === 'v' ) {
-                if(!this._canPan()) {
-                    _currPanDist.y += delta.y;
-                    _panOffset.y += delta.y;
-    
-                    //var opacityRatio = _calculateVerticalDragOpacityRatio();
-    
-                   // _verticalDragInitiated = true;
-                   // _shout('onVerticalDrag', opacityRatio);
-    
-                    //_applyBgOpacity(opacityRatio);
-                    this._applyCurrentZoomPan();
-                    //return ;
-                }
+                var opacityRatio = _calculateVerticalDragOpacityRatio();
+
+                _verticalDragInitiated = true;
+                _shout('onVerticalDrag', opacityRatio);
+
+                _applyBgOpacity(opacityRatio);
+                _applyCurrentZoomPan();
+                return ;
             }
         }
     }
-
-    _applyZoomTransform = function(styleObj,x,y,zoom,item) {
-		// if(!_renderMaxResolution || (item && item !== self.currItem) ) {
-		// 	zoom = zoom / (item ? item.fitRatio : self.currItem.fitRatio);	
-        // }
-        zoom = 1
-           // console.log(styleObj)
-           console.log(_translatePrefix)
-        styleObj[_transformKey] = _translatePrefix + x + 'px, ' + y + 'px' + _translateSufix + ' scale(' + zoom + ')';
-        console.log(_translatePrefix + x + 'px, ' + y + 'px' + _translateSufix + ' scale(' + zoom + ')')
-	}
-	_applyCurrentZoomPan = function( allowRenderResolution ) {
-		// if(_currZoomElementStyle) {
-
-		// 	if(allowRenderResolution) {
-		// 		if(_currZoomLevel > self.currItem.fitRatio) {
-		// 			if(!_renderMaxResolution) {
-		// 				_setImageSize(self.currItem, false, true);
-		// 				_renderMaxResolution = true;
-		// 			}
-		// 		} else {
-		// 			if(_renderMaxResolution) {
-		// 				_setImageSize(self.currItem);
-		// 				_renderMaxResolution = false;
-		// 			}
-		// 		}
-		// 	}
-			
-        _currZoomElementStyle = document.querySelectorAll('.swiper-zoom-container')[0].style
-        _currZoomLevel = 1
-       // console.log(_currZoomElementStyle)
-			this._applyZoomTransform(_currZoomElementStyle, _panOffset.x, _panOffset.y, _currZoomLevel);
-		//}
-	}
-    
-    _canPan = function() {
-        return false
-		return !(_options.scaleMode === 'fit' && _currZoomLevel ===  self.currItem.initialZoomLevel);
-	}
-	
     _onDragRelease(){
         _isDragging = false
         _that._stopDragUpdateLoop()

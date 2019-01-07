@@ -90,9 +90,9 @@ class gesture  {
        
     }
     bindEvent(){
-        this.container.addEventListener('touchstart',this._onDragStart, false)
+       // this.container.addEventListener('touchstart',this._onDragStart, false)
         this.container.addEventListener('touchmove',this._onDragMove, false)
-        this.container.addEventListener('touchend',this._onDragRelease, false)
+       // this.container.addEventListener('touchend',this._onDragRelease, false)
     }
     _onDragStart(e){
         // if(e.type === 'mousedown' && e.button > 0  ) {
@@ -134,6 +134,7 @@ class gesture  {
     }
     
     _onDragMove(e){
+        e.preventDefault();
 console.log('_onDragMove')
 		if(_pointerEventEnabled) {
 			var pointerIndex = framework.arraySearch(_currPointers, e.pointerId, 'id');
@@ -164,11 +165,7 @@ console.log('_onDragMove')
 			} else {
 				_currentPoints = touchesList;
             }
-        }	
-        if(_direction === 'v' && _currentPoints.length == 1){
-            e.preventDefault();
-        }
-        console.log(_direction)
+		}	
     }
     _renderMovement(){
         if(!_currentPoints) {
@@ -223,7 +220,7 @@ console.log('_onDragMove')
     
                     //_applyBgOpacity(opacityRatio);
                     this._applyCurrentZoomPan();
-                    //return ;
+                    return ;
                 }
             }
         }

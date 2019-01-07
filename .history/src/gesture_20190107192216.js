@@ -165,10 +165,9 @@ console.log('_onDragMove')
 				_currentPoints = touchesList;
             }
         }	
-        if(_direction === 'v' && _currentPoints.length == 1){
+        if(_direction === 'v'){
             e.preventDefault();
         }
-        console.log(_direction)
     }
     _renderMovement(){
         if(!_currentPoints) {

@@ -73,12 +73,13 @@ class gesture  {
         _that = this
     }
     init(){
-        _transformKey = 'transform';
+        _transformKey = 'left';
         if(_transformKey) {
 			// setup 3d transforms
 			var allow3dTransform = true;//_features.perspective && !_likelyTouchDevice;
 			_translatePrefix = 'translate' + (allow3dTransform ? '3d(' : '(');
 			_translateSufix = true ? ', 0px)' : ')';	
+			return;
         }
         
         this.initFeatures()
@@ -134,7 +135,8 @@ class gesture  {
     }
     
     _onDragMove(e){
-console.log('_onDragMove')
+        e.preventDefault();
+
 		if(_pointerEventEnabled) {
 			var pointerIndex = framework.arraySearch(_currPointers, e.pointerId, 'id');
 			if(pointerIndex > -1) {
@@ -164,11 +166,7 @@ console.log('_onDragMove')
 			} else {
 				_currentPoints = touchesList;
             }
-        }	
-        if(_direction === 'v' && _currentPoints.length == 1){
-            e.preventDefault();
-        }
-        console.log(_direction)
+		}	
     }
     _renderMovement(){
         if(!_currentPoints) {
@@ -180,53 +178,53 @@ console.log('_onDragMove')
 		if(numPoints === 0) {
 			return;
 		}
-        console.log(numPoints)
+
 		util._equalizePoints(p, _currentPoints[0]);
 		delta.x = p.x - _currPoint.x;
 		delta.y = p.y - _currPoint.y;
 
-        if(numPoints < 2){
-            if(!_direction) {
-                return;
+        
+        if(!_direction) {
+            return;
+        }
+
+        if(_isFirstMove) {
+            _isFirstMove = false;
+
+            // subtract drag distance that was used during the detection direction  
+
+            if( Math.abs(delta.x) >= DIRECTION_CHECK_OFFSET) {
+                delta.x -= _currentPoints[0].x - _startPoint.x;
             }
-    
-            if(_isFirstMove) {
-                _isFirstMove = false;
-    
-                // subtract drag distance that was used during the detection direction  
-    
-                if( Math.abs(delta.x) >= DIRECTION_CHECK_OFFSET) {
-                    delta.x -= _currentPoints[0].x - _startPoint.x;
-                }
-                
-                if( Math.abs(delta.y) >= DIRECTION_CHECK_OFFSET) {
-                    delta.y -= _currentPoints[0].y - _startPoint.y;
-                }
-            }
-    
-            _currPoint.x = p.x;
-            _currPoint.y = p.y;
-    
-            // do nothing if pointers position hasn't changed
-            if(delta.x === 0 && delta.y === 0) {
-                return;
-            }
-            if(_direction === 'v' ) {
-                if(!this._canPan()) {
-                    _currPanDist.y += delta.y;
-                    _panOffset.y += delta.y;
-    
-                    //var opacityRatio = _calculateVerticalDragOpacityRatio();
-    
-                   // _verticalDragInitiated = true;
-                   // _shout('onVerticalDrag', opacityRatio);
-    
-                    //_applyBgOpacity(opacityRatio);
-                    this._applyCurrentZoomPan();
-                    //return ;
-                }
+            
+            if( Math.abs(delta.y) >= DIRECTION_CHECK_OFFSET) {
+                delta.y -= _currentPoints[0].y - _startPoint.y;
             }
         }
+
+        _currPoint.x = p.x;
+        _currPoint.y = p.y;
+
+        // do nothing if pointers position hasn't changed
+        if(delta.x === 0 && delta.y === 0) {
+            return;
+        }
+        if(_direction === 'v' ) {
+            if(!this._canPan()) {
+                _currPanDist.y += delta.y;
+                _panOffset.y += delta.y;
+
+                //var opacityRatio = _calculateVerticalDragOpacityRatio();
+
+               // _verticalDragInitiated = true;
+               // _shout('onVerticalDrag', opacityRatio);
+
+                //_applyBgOpacity(opacityRatio);
+                this._applyCurrentZoomPan();
+                return ;
+            }
+        }
+
     }
 
     _applyZoomTransform = function(styleObj,x,y,zoom,item) {

@@ -134,6 +134,7 @@ class gesture  {
     }
     
     _onDragMove(e){
+        e.preventDefault();
 console.log('_onDragMove')
 		if(_pointerEventEnabled) {
 			var pointerIndex = framework.arraySearch(_currPointers, e.pointerId, 'id');
@@ -164,11 +165,7 @@ console.log('_onDragMove')
 			} else {
 				_currentPoints = touchesList;
             }
-        }	
-        if(_direction === 'v' && _currentPoints.length == 1){
-            e.preventDefault();
-        }
-        console.log(_direction)
+		}	
     }
     _renderMovement(){
         if(!_currentPoints) {
@@ -223,7 +220,7 @@ console.log('_onDragMove')
     
                     //_applyBgOpacity(opacityRatio);
                     this._applyCurrentZoomPan();
-                    //return ;
+                    return ;
                 }
             }
         }

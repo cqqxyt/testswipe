@@ -77,13 +77,13 @@ export default {
       },
       on:{
         touchStart(e) {
-          //vm.obj._onDragStart(e)
+          vm.obj._onDragStart(e)
         },
         touchMove(e){
-         // console.log('move')
+          console.log('move')
         },
         touchEnd(e) {
-          //vm.obj._onDragRelease(e)
+          vm.obj._onDragRelease(e)
         }
       }
     });
