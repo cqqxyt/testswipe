@@ -4,7 +4,6 @@ import framework from '../static/util/framework.js'
 import util from '../static/util/util.js'
 import swiperUI from '../src/swiperUI.js'
 import {_animateProp,_stopAllAnimations,_stopAnimation,_registerStartAnimation} from '../static/util/animations.js'
-import shout from '../static/util/shout.js'
 
 let _that ,
 _isOpen = true,
@@ -53,16 +52,17 @@ _initialContentSet,
     _translateSufix,
     _currPositionIndex = 0,
     DIRECTION_CHECK_OFFSET = 10,
-    _showOrHideTimeout;
+    _hideTimeout;
    
    
 
 class gesture  {
     constructor(params){
-        this.swiperUI = new swiperUI(params)
+		_that = this
+		this.swiperUI = new swiperUI(params)
+		this.items = params.items
         _pointerEventEnabled = navigator.pointerEnabled || navigator.msPointerEnabled;
         this.init()
-        _that = this
     }
     init(){
         _features = framework.detectFeatures()
@@ -72,12 +72,24 @@ class gesture  {
         _transformKey = _features.transform;
 
         this._setupTransforms()
-        console.log(_features)
         
         this.initFeatures()
-        this.bindEvent()
-       
-    }
+		this.bindEvent()
+		this.currentItemIndex = 1
+		this.item = this.getItemAt()
+		this.initItem()
+	}
+	initItem(){
+		this.items[this.currentItemIndex].initialPosition = util._getZeroBounds().center
+	}
+	
+	getThumbBoundsFn(){
+		return this.items[this.currentItemIndex].initialLayout
+	}
+	getItemAt(){
+		return this.items[this.currentItemIndex]
+	}
+
     bindEvent(){
         this.swiperUI.container.addEventListener('touchstart',this._onDragStart, false)
         this.swiperUI.container.addEventListener('touchmove',this._onDragMove, false)
@@ -204,12 +216,10 @@ class gesture  {
                     _panOffset.y += delta.y;
     
                     var opacityRatio = this._calculateVerticalDragOpacityRatio();
-    console.log(opacityRatio)
                      _verticalDragInitiated = true;
-                    //shout('onVerticalDrag', opacityRatio);
-    
                     this._applyBgOpacity(opacityRatio);
-                    this._stopAnimation()
+					this._stopAnimation()
+					_currZoomLevel = opacityRatio
                     this._applyCurrentZoomPan();
                     //return ;
                 }
@@ -301,16 +311,15 @@ class gesture  {
 					_panOffset.y = (_currItem.initialPosition.y - initalPanY) * now + initalPanY;
 
 					_that._applyBgOpacity(  (1 - initialBgOpacity) * now + initialBgOpacity );
+					_currZoomLevel =  (1 - initialBgOpacity) * now + initialBgOpacity
 					_that._applyCurrentZoomPan();
 				});
 
-				//shout('onVerticalDrag', 1);
 			}
 
 			return;
         }
         
-        console.log('_onDragRelease')
        
     }
     _applyBgOpacity (opacity) {
@@ -339,35 +348,14 @@ class gesture  {
         return $(this.container).find('.swiper-slide-active').find('.swiper-zoom-container')
     }
     _applyZoomTransform = function(styleObj,x,y,zoom,item) {
-		// if(!_renderMaxResolution || (item && item !== self.currItem) ) {
-		// 	zoom = zoom / (item ? item.fitRatio : self.currItem.fitRatio);	
-        // }
-           // console.log(styleObj)
-           console.log(_translatePrefix)
+		
         styleObj[_transformKey] = _translatePrefix + x + 'px, ' + y + 'px' + _translateSufix + ' scale(' + zoom + ')';
-        console.log(_translatePrefix + x + 'px, ' + y + 'px' + _translateSufix + ' scale(' + zoom + ')')
 	}
 	_applyCurrentZoomPan ( allowRenderResolution ) {
-		// if(_currZoomElementStyle) {
-
-		// 	if(allowRenderResolution) {
-		// 		if(_currZoomLevel > self.currItem.fitRatio) {
-		// 			if(!_renderMaxResolution) {
-		// 				_setImageSize(self.currItem, false, true);
-		// 				_renderMaxResolution = true;
-		// 			}
-		// 		} else {
-		// 			if(_renderMaxResolution) {
-		// 				_setImageSize(self.currItem);
-		// 				_renderMaxResolution = false;
-		// 			}
-		// 		}
-		// 	}
-        _currZoomElementStyle = _currItem.node[0].style
-        _currZoomLevel = 1
-       // console.log(_currZoomElementStyle)
-			this._applyZoomTransform(_currItem.node[0].style, _panOffset.x, _panOffset.y, 1);
-		//}
+        _currZoomElementStyle = _that.swiperUI.currentItem().node[0].style
+		_currZoomLevel = _currZoomLevel ? _currZoomLevel : 1
+		_currZoomLevel = 1
+		this._applyZoomTransform(_currZoomElementStyle, _panOffset.x, _panOffset.y,_currZoomLevel);
 	}
     
     _canPan = function() {
@@ -442,67 +430,45 @@ class gesture  {
 		}
 	}
 	_canPan() {
-		return !(_options.scaleMode === 'fit' && _currZoomLevel ===  self.currItem.initialZoomLevel);
+		return false
+		return !(_currZoomLevel ===  self.currItem.initialZoomLevel);
     }
 
     close() {
-		if(!_isOpen) {
-			return;
-		}
+		// if(!_isOpen) {
+		// 	return;
+		// }
 
-		_isOpen = false;
-		_isDestroying = true;
-		//shout('close');
-		//_unbindEvents();
+		// _isOpen = false;
+		// _isDestroying = true;
 
-		this._showOrHide(_currItem.node[0], null, true, self.destroy);
+		this._hide(_currItem.node[0], true);
     }
     
-	_showOrHide(item, img, out, completeFn) {
-
-		if(_showOrHideTimeout) {
-			clearTimeout(_showOrHideTimeout);
+	_hide(item, out) {
+		if(_hideTimeout) {
+			clearTimeout(_hideTimeout);
 		}
 
 		_initialZoomRunning = true;
 		_initialContentSet = true;
 		
-		// dimensions of small thumbnail {x:,y:,w:}.
-		// Height is optional, as calculated based on large image.
-		var thumbBounds = {x:0,y:0,w:0}; 
-		if(item.initialLayout) {
-			thumbBounds = item.initialLayout;
-			item.initialLayout = null;
-		} else {
-			thumbBounds = _options.getThumbBoundsFn && _options.getThumbBoundsFn(_currentItemIndex);
-		}
+		var thumbBounds = {x:0,y:0,w:200}; 
+		
 
 		var duration = out ? hideAnimationDuration : showAnimationDuration;
 
 		var onComplete = function() {
 			_stopAnimation('initialZoom');
-			if(!out) {
-				_that._applyBgOpacity(1);
-				if(img) {
-					img.style.display = 'block';
-				}
-				framework.addClass(template, 'pswp--animated-in');
-				//shout('initialZoom' + (out ? 'OutEnd' : 'InEnd'));
-			} else {
-				//_currItem.node[0].removeAttribute('style');
-				//_that.swiperUI.getBgItem().removeAttribute('style');
-			}
-
-			if(completeFn) {
-				completeFn();
-			}
+			$(_that.swiperUI.container).addClass('sipwe__ui--hidden')
+			_currItem.node[0].removeAttribute('style');
+			_that.swiperUI.getBgItem().removeAttribute('style');
 			_initialZoomRunning = false;
 		};
 
 		// if bounds aren't provided, just open gallery without animation
 		if(!duration || !thumbBounds || thumbBounds.x === undefined) {
 
-			shout('initialZoom' + (out ? 'Out' : 'In'), $(_that.swiperUI.container));
 
 			_currZoomLevel = item.initialZoomLevel;
 			util._equalizePoints(_panOffset,  item.initialPosition );
@@ -523,61 +489,17 @@ class gesture  {
 		}
 
 		var startAnimation = function() {
-			var closeWithRaf = true,
-				fadeEverything =true;//!self.currItem.src || self.currItem.loadError || _options.showHideOpacity;
-
 			_registerStartAnimation('initialZoom');
-			
-			if(out && !closeWithRaf) {
-				framework.removeClass(template, 'pswp--animated-in');
-			}
-
-			// if(fadeEverything) {
-			// 	if(out) {
-			// 		framework[ (closeWithRaf ? 'remove' : 'add') + 'Class' ](template, 'pswp--animate_opacity');
-			// 	} else {
-			// 		setTimeout(function() {
-			// 			framework.addClass(template, 'pswp--animate_opacity');
-			// 		}, 30);
-			// 	}
-			// }
-
-			_showOrHideTimeout = setTimeout(function() {
-
-				shout('initialZoom' + (out ? 'Out' : 'In'), $(_that.swiperUI.container) );
-				
-
-				if(!out) {
-
-					// "in" animation always uses CSS transitions (instead of rAF).
-					// CSS transition work faster here, 
-					// as developer may also want to animate other things, 
-					// like ui on top of sliding area, which can be animated just via CSS
-					
-					_currZoomLevel = item.initialZoomLevel;
-					util._equalizePoints(_panOffset,  item.initialPosition );
-					_that._applyCurrentZoomPan();
-					_that._applyBgOpacity(1);
-
-					if(fadeEverything) {
-						_that.getBgItem[0].style.opacity = 1;
-					} else {
-						_that._applyBgOpacity(1);
-					}
-
-					_showOrHideTimeout = setTimeout(onComplete, duration + 20);
-				} else {
-
-					// "out" animation uses rAF only when PhotoSwipe is closed by browser scroll, to recalculate position
-					var destZoomLevel = thumbBounds.w / item.w,
+			_hideTimeout = setTimeout(function() {
+					var destZoomLevel = thumbBounds.w / 1920,
 						initialPanOffset = {
 							x: _panOffset.x,
 							y: _panOffset.y
 						},
 						initialZoomLevel = _currZoomLevel,
-						initalBgOpacity = _bgOpacity,
 						onUpdate = function(now) {
 							const _currentWindowScrollY = 0
+							console.log(now)
 							if(now === 1) {
 								_currZoomLevel = destZoomLevel;
 								_panOffset.x = thumbBounds.x;
@@ -585,28 +507,16 @@ class gesture  {
 							} else {
 								_currZoomLevel = (destZoomLevel - initialZoomLevel) * now + initialZoomLevel;
 								_panOffset.x = (thumbBounds.x - initialPanOffset.x) * now + initialPanOffset.x;
-								_panOffset.y = (thumbBounds.y - _currentWindowScrollY - initialPanOffset.y) * now + initialPanOffset.y;
+								_panOffset.y =  (thumbBounds.y - _currentWindowScrollY - initialPanOffset.y) * now + initialPanOffset.y;
 							}
-							
+							console.log(_panOffset)
 							_that._applyCurrentZoomPan();
-							if(fadeEverything) {
-								_that.swiperUI.getBgItem().style.opacity = 1 - now;
-							} else {
-								_that._applyBgOpacity( initalBgOpacity - now * initalBgOpacity );
-							}
+							_that.swiperUI.getBgItem().style.opacity = 1 - now;
 						};
 
-					if(closeWithRaf) {
 						_animateProp('initialZoom', 0, 1, duration, framework.easing.cubic.out, onUpdate, onComplete);
-					} else {
-						onUpdate(1);
-						_showOrHideTimeout = setTimeout(onComplete, duration + 20);
-					}
-				}
-			
-			}, out ? 25 : 90); // Main purpose of this delay is to give browser time to paint and
-					// create composite layers of PhotoSwipe UI parts (background, controls, caption, arrows).
-					// Which avoids lag at the beginning of scale transition.
+					
+			}, 50); 
 		};
 		startAnimation();
 

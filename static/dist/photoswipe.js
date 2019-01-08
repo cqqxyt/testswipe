@@ -13,7 +13,7 @@
 
 	'use strict';
 	var PhotoSwipe = function(template, UiClass, items, options){
-
+console.log(items)
 /*>>framework-bridge*/
 /**
  *
@@ -805,7 +805,7 @@ var publicMethods = {
 	},
 
 	init: function() {
-
+console.log(items)
 		if(_isOpen || _isDestroying) {
 			return;
 		}
@@ -990,7 +990,7 @@ var publicMethods = {
 		_isDestroying = true;
 		_shout('close');
 		_unbindEvents();
-
+		console.log('close')
 		_showOrHide(self.currItem, null, true, self.destroy);
 	},
 
@@ -2519,7 +2519,6 @@ _registerModule('Gestures', {
 
 var _showOrHideTimeout,
 	_showOrHide = function(item, img, out, completeFn) {
-debugger
 		if(_showOrHideTimeout) {
 			clearTimeout(_showOrHideTimeout);
 		}
@@ -2965,6 +2964,7 @@ _registerModule('Controller', {
 			});
 
 			_listen('initialLayout', function() {
+				debugger
 				self.currItem.initialLayout = _options.getThumbBoundsFn && _options.getThumbBoundsFn(_currentItemIndex);
 			});
 
@@ -3165,6 +3165,7 @@ _registerModule('Controller', {
 
 			if(!_initialContentSet && index === _currentItemIndex) {
 				_currZoomElementStyle = baseDiv.style;
+				debugger
 				_showOrHide(item, (img ||item.img) );
 			} else {
 				_applyZoomPanToItem(item);

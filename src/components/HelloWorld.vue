@@ -1,8 +1,9 @@
 <template>
   <div>
         <div class="text-content">
-            <img src="https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_m.jpg">
-            <img src="http://lorempixel.com/800/400/sports/2/">
+	          <img src="https://farm4.staticflickr.com/3894/15008518202_b016d7d289_m.jpg" alt="" />
+	          <img src="https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_m.jpg" alt="" />
+	          <img src="https://farm4.staticflickr.com/3902/14985871946_86abb8c56f_m.jpg" alt="" />
         </div>   
       
         <div id="imgThumbComponentsContent">
@@ -12,7 +13,7 @@
               <div class="swiper-wrapper">
                 <div class="swiper-slide">
                   <div class="swiper-zoom-container">
-                    <img src="https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_m.jpg">
+                    <img src="https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_h.jpg">
                   </div>
                 </div>
                 <div class="swiper-slide">
@@ -53,7 +54,8 @@
 </template>
 
 <script>
- import $ from 'jquery'
+import $ from 'jquery'
+import parseThumbnailElements from '../../static/util/parseThumbnailElements.js'
 import '../../node_modules/swiper/dist/css/swiper.css'
 import Swiper from '../../static/swiper.js'
 import gesture from '../gesture'
@@ -71,7 +73,9 @@ export default {
   mounted() {
     const vm = this
     $(".text-content img").on("click", function(){
+      $(".image-slide").removeClass("sipwe__ui--hidden")
       var galleryThumbs = new Swiper('.gallery-thumbs', {
+        width: document.body.clientWidth,
         spaceBetween: 10,
         slidesPerView: 4,
         freeMode: true,
@@ -104,9 +108,11 @@ export default {
           }
         }
       });
-      vm.obj = new gesture({container:'.image-slide'})
-      vm.obj._showOrHide({src:'https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_b.jpg'}, $(this))
+     
       })
+      //gesture.registerEvent('onVerticalDragClose', '.image-slide')
+       vm.obj = new gesture({container:'.image-slide', items:parseThumbnailElements($(".text-content")[0])})
+      //vm.obj._showOrHide({src:'https://farm6.staticflickr.com/5591/15008867125_68a8ed88cc_b.jpg'}, $(this))
     
   }
 }
@@ -123,9 +129,6 @@ export default {
     z-index:10;
     background: #000;
 }
-.gallery-top-content{
-  opacity: 0;
-}
 .text-content{
   position: relative;
   z-index:0;
@@ -137,6 +140,14 @@ export default {
 .sipwe__ui--hidden{
   display: none;
 }
+
+.pswp--animate_opacity {
+  /* 0.001, because opacity:0 doesn't trigger Paint action, which causes lag at start of transition */
+  opacity: 0.001;
+  will-change: opacity;
+  /* for open/close transition */
+  -webkit-transition: opacity 333ms cubic-bezier(0.4, 0, 0.22, 1);
+          transition: opacity 333ms cubic-bezier(0.4, 0, 0.22, 1); }
 
 h1, h2 {
   font-weight: normal;
