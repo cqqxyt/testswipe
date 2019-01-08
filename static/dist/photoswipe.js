@@ -2519,7 +2519,7 @@ _registerModule('Gestures', {
 
 var _showOrHideTimeout,
 	_showOrHide = function(item, img, out, completeFn) {
-
+debugger
 		if(_showOrHideTimeout) {
 			clearTimeout(_showOrHideTimeout);
 		}
